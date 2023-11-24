@@ -20,37 +20,46 @@ https://tronscan.org/#/transaction/3200ca62dde62e4a79d6f6bbaf3bab3ff81a2a67164f7
 3. Open `TRC20Mint`, execute command:`npm init`
 4. Execute command:`npm install tronweb `
 5. Create an index.js file,copy the code below
-6. Run index.js:`node index.js` 
+6. Run index.js:`node index.js`
 
-```
+```javascript
 const TronWeb = require('tronweb');
+
+const RPC_URL = "https://api.trongrid.io" // RPC 节点
+const PRIVATE_KEY = "your private key"; // 输入你的密钥
+const MINT_TIMES = 1000; // 铸造次数
+
 const HttpProvider = TronWeb.providers.HttpProvider;
-const fullNode = new HttpProvider("https://api.trongrid.io");
-const solidityNode = new HttpProvider("https://api.trongrid.io");
-const eventServer = new HttpProvider("https://api.trongrid.io");
-const privateKey = "your privateKey"; //
-const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, privateKey);
+
+const fullNode = new HttpProvider(RPC_URL);
+const solidityNode = new HttpProvider(RPC_URL);
+const eventServer = new HttpProvider(RPC_URL);
+const tronWeb = new TronWeb(fullNode, solidityNode, eventServer, PRIVATE_KEY);
 
 const blackHole = "T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb";  //black hole address
 
-const memo = 'data:,{"p":"trc-20","op":"mint","tick":"trxi","amt":"1000"}';  
+const memo = 'data:,{"p":"trc-20","op":"mint","tick":"trxi","amt":"1000"}';
 
-async function main() {
-
+async function mint() {
     const unSignedTxn = await tronWeb.transactionBuilder.sendTrx(blackHole, 1); //0.000001 TRX is the minimum transfer amount.
     const unSignedTxnWithNote = await tronWeb.transactionBuilder.addUpdateData(unSignedTxn, memo, 'utf8');
     const signedTxn = await tronWeb.trx.sign(unSignedTxnWithNote);
-    console.log("signed =>", signedTxn);
     const ret = await tronWeb.trx.sendRawTransaction(signedTxn);
-    console.log("broadcast =>", ret);
+    if (ret.result) {
+      console.info(`mint success, transaction: ${JSON.stringify(ret.transaction)}\n`)
+    } else {
+      console.error(`mint failed, error code: ${ret.code}; txID: ${signedTxn.txID}\n`)
+    }
 }
 
-main().then(() => {
+async function batchMint(times) {
+  for (let i = 0; i < times; i++) {
+    console.log(`mint ${i+1} times`)
+    await mint()
+  }
+}
 
-    })
-    .catch((err) => {
-        console.log("error:", err);
-    });
+batchMint(MINT_TIMES) // 批量铸造
 ```
 
 ## Mint TRXI with TokenPocket Wallet
@@ -71,7 +80,7 @@ main().then(() => {
 
 ## FAQ
 ### Why you need transfer to `T9yD14Nj9j7xAB4dbGeiX9h8unkKHxuWwb` account?
-Because TRON blockchain cannot transfer to yourself address.We decided transfer to the black hole address of the TRON blockchain. Refer to the black hole address given in the official [documentation](https://developers.tron.network/docs/faq#3-what-is-the-destruction-address-of-tron) of the TRON blockchain. 
+Because TRON blockchain cannot transfer to yourself address.We decided transfer to the black hole address of the TRON blockchain. Refer to the black hole address given in the official [documentation](https://developers.tron.network/docs/faq#3-what-is-the-destruction-address-of-tron) of the TRON blockchain.
 
 ### Why you need transfer to 0.000001 TRX to black hole address?
 Because TRON blockchain cannot transfer zero amount, 0.000001 TRX is the minimum transfer amount.
